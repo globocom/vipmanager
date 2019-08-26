@@ -20,7 +20,7 @@ import (
 
 var app = cli.NewApp()
 var napiURLQA = "http://networkapi.qa01.globoi.com"
-var napiURLPROD = "http://networkapi.globoi.com"
+var napiURLPROD = "https://networkapi.globoi.com"
 var napiURL string
 var napiUser string
 var napiPass string

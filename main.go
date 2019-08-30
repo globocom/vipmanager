@@ -1,8 +1,10 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
+	"text/tabwriter"
 
 	"github.com/globocom/vipmanager/http"
 	"github.com/globocom/vipmanager/model"
@@ -36,6 +38,7 @@ func updateVip(c *cli.Context, op Operation) {
 	vipName := c.String("vip")
 	ip := c.String("real")
 	env := c.GlobalString("env")
+	dry := c.GlobalBool("dry")
 	napiUser := c.GlobalString("ldap_user")
 	napiPass := c.GlobalString("ldap_pass")
 
@@ -45,13 +48,26 @@ func updateVip(c *cli.Context, op Operation) {
 
 	model.HTTP = http.New(env, napiUser, napiPass)
 
+	if op == ADD {
+		log.Println("initializing add operation")
+	} else {
+		log.Println("initializing rem operation")
+	}
+
+	fmt.Println()
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
+	fmt.Fprintf(w, "Load Balancer name\tIP to add/remove\t\n")
+	fmt.Fprintf(w, "%s\t%s\t\n\n", vipName, ip)
+	w.Flush()
+
+	log.Println("retrieving IPV4 id")
 	ipReq := model.Ipv4Request{IP: ip}
 	ipID, err := ipReq.GET()
 	if err != nil {
 		log.Fatalf("Error retrieving ip: %s\n %v", ip, err)
 	}
-	log.Printf("The id of IP: %s is: %d", ip, ipID)
 
+	log.Println("fetching Load Balancer info")
 	vipReq := model.VipRequest{}
 	vip, err := vipReq.GET(vipName)
 	if err != nil {
@@ -65,13 +81,19 @@ func updateVip(c *cli.Context, op Operation) {
 	}
 
 	if op == ADD {
-		err = spReq.AddMember(ipID, ip)
+		err = spReq.AddMember(ipID, ip, dry)
 	} else {
-		err = spReq.RemMember(ipID)
+		err = spReq.RemMember(ipID, dry)
 	}
 
 	if err != nil {
 		log.Fatalf("Error updating the server pools: %v for the vip: %s\n %v", spReq.Ids, vipName, err.Error())
+	}
+
+	if dry {
+		log.Println("Changes were not stored after a dry run")
+	} else {
+		log.Println("Changes were stored on NAPI")
 	}
 
 	log.Println("Operation concluded successfully")

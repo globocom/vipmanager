@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 type ServerPoolReq struct {
@@ -62,6 +65,8 @@ func (s *ServerPoolReq) build(get bool) string {
 }
 
 func (s *ServerPoolReq) GET(vip Vip) error {
+	log.Println("fetching Pools info")
+
 	serverPoolIDs := []int{}
 	for _, port := range vip.Ports {
 		for _, pool := range port.Pools {
@@ -86,20 +91,37 @@ func (s *ServerPoolReq) GET(vip Vip) error {
 			len(s.ServerPools),
 		)
 	}
+	s.print()
 	return nil
 }
 
-func (s *ServerPoolReq) AddMember(ipID int, ipFormated string) error {
+func (s *ServerPoolReq) AddMember(ipID int, ipFormated string, dry bool) error {
 	for _, p := range s.ServerPools {
 		p.addMember(p.DefaultPort, ipID, ipFormated)
 	}
+
+	log.Print("Pool after adding")
+	s.print()
+
+	if dry {
+		return nil
+	}
+
 	return s.store()
 }
 
-func (s *ServerPoolReq) RemMember(ipID int) error {
+func (s *ServerPoolReq) RemMember(ipID int, dry bool) error {
 	for _, p := range s.ServerPools {
 		p.remMember(ipID)
 	}
+
+	log.Print("Pool after removing")
+	s.print()
+
+	if dry {
+		return nil
+	}
+
 	return s.store()
 }
 
@@ -146,4 +168,19 @@ func (s *ServerPool) remMember(ipID int) {
 	}
 
 	s.Members = append(s.Members[0:remI], s.Members[remI+1:]...)
+}
+
+func (s *ServerPoolReq) print() {
+	fmt.Println()
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
+	fmt.Fprintf(w, "Pool ID\tName\tDefault port\tMembers (ID/IP)\t\n")
+	for _, p := range s.ServerPools {
+		var members []string
+		for _, p := range p.Members {
+			members = append(members, strconv.Itoa(p.IP.ID)+"/"+p.IP.IPFormated)
+		}
+		fmt.Fprintf(w, "%d\t%s\t%d\t%s\t\n", p.ID, p.Identifier, p.DefaultPort, strings.Join(members, "; "))
+	}
+	w.Flush()
+	fmt.Println()
 }

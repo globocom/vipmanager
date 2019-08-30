@@ -16,6 +16,10 @@ func flags() {
 			Value: "qa",
 			Usage: "NetworkApi env prod/qa",
 		},
+		cli.BoolFlag{
+			Name:  "dry, d",
+			Usage: "Just a test drive :)",
+		},
 		cli.StringFlag{
 			Name:   "ldap_user",
 			Usage:  "User from ladp to auth on the napi (without domain)",

@@ -3,10 +3,13 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 //Ipv4Request Ipv4 request representation from the Network API
@@ -78,10 +81,19 @@ func (ipReq *Ipv4Request) GET() (int, error) {
 	}
 
 	if len(res.Ips) == 1 {
+		printIP(res.Ips[0].ID, ipReq.IP)
 		return res.Ips[0].ID, nil
 	} else if len(res.Ips) > 1 {
 		return 0, errors.New("More than one Ip was returned")
 	}
 
 	return 0, errors.New("Ip not found")
+}
+
+func printIP(ID int, IP string) {
+	fmt.Println()
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
+	fmt.Fprintf(w, "ID\tIPV4\t\n")
+	fmt.Fprintf(w, "%d\t%s\t\n\n", ID, IP)
+	w.Flush()
 }

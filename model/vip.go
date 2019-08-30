@@ -3,7 +3,10 @@ package model
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/url"
+	"os"
+	"text/tabwriter"
 )
 
 type VipRequest struct {
@@ -29,10 +32,12 @@ type VipResp struct {
 }
 
 type Vip struct {
-	ID     int    `json:"id"`
-	Name   string `json:"name"`
-	Ipv4Id int    `json:"ipv4"`
-	Ports  []Port `json:"ports"`
+	ID          int    `json:"id"`
+	Name        string `json:"name"`
+	Business    string `json:"business"`
+	Environment int    `json:"environmentvip"`
+	Ipv4Id      int    `json:"ipv4"`
+	Ports       []Port `json:"ports"`
 }
 
 type Port struct {
@@ -70,5 +75,19 @@ func (req *VipRequest) GET(name string) (Vip, error) {
 		return Vip{}, errors.New("more than one Vip was returned in the query. Aborting")
 	}
 
+	vips.Vips[0].print()
 	return vips.Vips[0], nil
+}
+
+func (v *Vip) print() {
+	portNumbers := []int16{}
+	for _, x := range v.Ports {
+		portNumbers = append(portNumbers, x.Port)
+	}
+	fmt.Println()
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', tabwriter.TabIndent)
+	fmt.Fprintf(w, "ID\tBusiness\tEnvironment\tPorts\t\n")
+	fmt.Fprintf(w, "%d\t%s\t%d\t%v\t\n\n", v.ID, v.Business, v.Environment, portNumbers)
+	w.Flush()
+
 }
